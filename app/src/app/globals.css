@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --ink: #18140f;
+  --ink-soft: #221c15;
+  --paper: #f4ecdb;
+  --paper-dim: #e7dcc4;
+  --amber: #c67a3d;
+  --amber-soft: #e0a565;
+  --sage: #7c8b5d;
+  --rosewood: #9c4b3c;
+  --slate: #6b7280;
+  --line: #d9c9a4;
+  --line-dark: #3a3226;
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --surface: #ffffff;
+  --surface-muted: #ece2cd;
+  --border: var(--line);
+  --accent: var(--amber);
+  --accent-foreground: #241202;
+}
+
+.dark {
+  --background: var(--ink);
+  --foreground: var(--paper);
+  --surface: var(--ink-soft);
+  --surface-muted: #2a2318;
+  --border: var(--line-dark);
+  --accent: var(--amber-soft);
+  --accent-foreground: #241202;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-sage: var(--sage);
+  --color-rosewood: var(--rosewood);
+  --color-ink: var(--ink);
+  --color-paper: var(--paper);
+
+  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-work-sans);
+  --font-mono: var(--font-plex-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@media print {
+  .no-print,
+  aside {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+    color: #000;
+  }
+  main {
+    padding: 0 !important;
+  }
+}

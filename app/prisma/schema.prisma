@@ -1,0 +1,233 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // Dev rápido em SQLite via driver adapter (ver src/lib/prisma.ts).
+  // Para produção, troque o provider para "postgresql" e o adapter para @prisma/adapter-pg
+  // apontando para a connection string do Supabase.
+  provider = "sqlite"
+}
+
+enum IngredientCategory {
+  ALCOOL
+  FIXADOR
+  ALMISCAR
+  MADEIRAS
+  RESINAS
+  CITRICOS
+  SINTETICOS
+  NATURAIS
+  FRASCOS
+  TAMPAS
+  VALVULAS
+  CORANTES
+  SOLVENTES
+  ESSENCIA
+}
+
+enum OlfactiveFamily {
+  CITRICO
+  AROMATICO_FRESCO
+  AROMATICO_GOURMAND
+  FLORAL
+  ORIENTAL_GOURMAND
+  CHYPRE_FRUTADO
+  AMADEIRADO
+  OUTRO
+}
+
+enum Concentration {
+  EDT
+  EDP
+  PARFUM
+  EXTRAIT
+}
+
+model Supplier {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?
+  whatsapp  String?
+  email     String?
+  website   String?
+  address   String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  ingredients Ingredient[]
+  bottles     Bottle[]
+}
+
+/// Matéria-prima (inclui insumos de base, essências e materiais de embalagem)
+model Ingredient {
+  id               String             @id @default(cuid())
+  name             String
+  category         IngredientCategory
+  unit             String             // "ml" | "g" | "un"
+  purchaseVolume   Float              // quantidade comprada, na unidade acima (ex: 100ml, 1000ml)
+  purchasePrice    Float              // preço pago pelo lote comprado
+  remainingVolume  Float?             // estoque restante
+  batchCode        String?
+  expiresAt        DateTime?
+  notes            String?
+  supplierId       String?
+  supplier         Supplier?          @relation(fields: [supplierId], references: [id])
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  deletedAt        DateTime?
+
+  baseItems      BaseIngredient[]
+  priceHistory   PriceHistory[]
+  perfumesAsEssence Perfume[] @relation("PerfumeEssence")
+  perfumesAsHedione Perfume[] @relation("PerfumeHedione")
+  projectsAsEssence Project[] @relation("ProjectEssence")
+  projectsAsHedione Project[] @relation("ProjectHedione")
+  projectMaterialCosts ProjectMaterialCost[]
+}
+
+/// Base universal (ex.: "Base Premium") — composição percentual de ingredientes
+model Base {
+  id        String   @id @default(cuid())
+  name      String
+  batchSize Float    @default(1000) // tamanho do lote de referência, em ml
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  items    BaseIngredient[]
+  perfumes Perfume[]
+  projects Project[]
+}
+
+/// Item de composição de uma Base: percentual de um ingrediente dentro do lote
+model BaseIngredient {
+  id           String     @id @default(cuid())
+  baseId       String
+  base         Base       @relation(fields: [baseId], references: [id], onDelete: Cascade)
+  ingredientId String
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
+  percentage   Float      // 0..1
+
+  @@unique([baseId, ingredientId])
+}
+
+/// Frasco / embalagem
+model Bottle {
+  id         String    @id @default(cuid())
+  volumeMl   Float      // 30, 50, 100, 200...
+  price      Float
+  color      String?
+  model      String?
+  weightG    Float?
+  quantity   Int        @default(0)
+  supplierId String?
+  supplier   Supplier?  @relation(fields: [supplierId], references: [id])
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  deletedAt  DateTime?
+
+  perfumes Perfume[]
+  projects Project[]
+}
+
+model Perfume {
+  id                String          @id @default(cuid())
+  name              String
+  inspiredBrand     String?
+  family            OlfactiveFamily
+  concentration     Concentration   @default(EDP)
+  description       String?
+  essencePercentage Float           // % de essência no volume final (0..1)
+  essenceIngredientId String
+  essenceIngredient Ingredient      @relation("PerfumeEssence", fields: [essenceIngredientId], references: [id])
+  hedionePercentage Float           @default(0) // % de hedione no volume final (0..1)
+  hedioneIngredientId String?
+  hedioneIngredient Ingredient?     @relation("PerfumeHedione", fields: [hedioneIngredientId], references: [id])
+  baseId            String
+  base              Base            @relation(fields: [baseId], references: [id])
+  bottleId          String
+  bottle            Bottle          @relation(fields: [bottleId], references: [id])
+  quantityProduced  Int             @default(1)
+  marginTarget      Float           // margem desejada 0..1, ex: 0.66
+  supplierId        String?
+  status            String          @default("ATIVO")
+  notes             String?
+  imageUrl          String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  deletedAt         DateTime?
+
+  productions Production[]
+}
+
+model Production {
+  id         String   @id @default(cuid())
+  perfumeId  String
+  perfume    Perfume  @relation(fields: [perfumeId], references: [id])
+  quantity   Int
+  totalCost  Float
+  producedAt DateTime @default(now())
+  notes      String?
+}
+
+model PriceHistory {
+  id           String     @id @default(cuid())
+  ingredientId String
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
+  price        Float
+  recordedAt   DateTime   @default(now())
+}
+
+/// Projeto: rascunho de receita/custeio a partir de uma Base, gerando relatório.
+/// Pode opcionalmente ser promovido a um Perfume do catálogo.
+model Project {
+  id                  String       @id @default(cuid())
+  name                String
+  essencePercentage   Float // 0..1
+  essenceIngredientId String
+  essenceIngredient   Ingredient   @relation("ProjectEssence", fields: [essenceIngredientId], references: [id])
+  hedionePercentage   Float        @default(0) // 0..1
+  hedioneIngredientId String?
+  hedioneIngredient   Ingredient?  @relation("ProjectHedione", fields: [hedioneIngredientId], references: [id])
+  baseId              String
+  base                Base         @relation(fields: [baseId], references: [id])
+  bottleId            String?
+  bottle              Bottle?      @relation(fields: [bottleId], references: [id])
+  volumeMl            Float        @default(30) // usado quando não há frasco vinculado
+  marginTarget         Float        @default(0.65)
+  status              String       @default("RASCUNHO") // RASCUNHO | PROMOVIDO
+  promotedPerfumeId   String?
+  notes               String?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  materialCosts ProjectMaterialCost[]
+}
+
+/// Override de custo por material (matéria-prima) dentro de um Projeto.
+/// Quando useSystemPrice=true, o custo vem do cadastro de Ingredient (padrão).
+/// Quando false, manualUnitCost é usado no lugar — útil para simular preços
+/// de fornecedor diferentes sem alterar o cadastro do sistema.
+model ProjectMaterialCost {
+  id             String     @id @default(cuid())
+  projectId      String
+  project        Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  ingredientId   String
+  ingredient     Ingredient @relation(fields: [ingredientId], references: [id])
+  useSystemPrice Boolean    @default(true)
+  manualUnitCost Float?
+
+  @@unique([projectId, ingredientId])
+}
+
+model Simulation {
+  id        String   @id @default(cuid())
+  name      String
+  inputJson String   // parâmetros do simulador serializados
+  resultJson String  // resultado calculado serializado
+  createdAt DateTime @default(now())
+}
