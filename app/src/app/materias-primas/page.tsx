@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Droplets } from "lucide-react";
+import { Plus, Droplets, Pencil } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { calculateUnitCost } from "@/lib/calculations/ingredientCost";
 import { Button } from "@/components/ui/button";
@@ -81,7 +81,12 @@ export default async function IngredientsPage({
                       {formatBRL(unitCost)}/{i.unit}
                     </td>
                     <td className="p-3 text-foreground/70">{i.supplier?.name ?? "—"}</td>
-                    <td className="p-3 text-right">
+                    <td className="p-3 text-right flex items-center justify-end gap-1">
+                      <Link href={`/materias-primas/${i.id}/editar`}>
+                        <Button variant="ghost" size="icon" aria-label={`Editar ${i.name}`}>
+                          <Pencil className="size-4 text-foreground/70 transition hover:text-accent" />
+                        </Button>
+                      </Link>
                       <DeleteButton action={deleteIngredient} id={i.id} label={`Remover ${i.name}?`} />
                     </td>
                   </tr>
