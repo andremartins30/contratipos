@@ -1,7 +1,9 @@
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 import { PrismaClient, IngredientCategory, OlfactiveFamily, Concentration } from "@prisma/client";
 
-const adapter = new PrismaLibSql({ url: "file:./prisma/dev.db" });
+const url = process.env.DATABASE_URL || "file:./prisma/dev.db";
+const authToken = process.env.DATABASE_AUTH_TOKEN;
+const adapter = new PrismaLibSql({ url, authToken });
 const prisma = new PrismaClient({ adapter });
 
 /** Dados extraídos 1:1 da Planilha2 do contratipo.xlsx. */
