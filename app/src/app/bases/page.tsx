@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Beaker } from "lucide-react";
+import { Plus, Beaker, Pencil } from "lucide-react";
 import { listBasesWithComposition } from "@/lib/data/bases";
 import { calculateBaseCostForVolumes } from "@/lib/calculations/baseCost";
 import { Button } from "@/components/ui/button";
@@ -45,7 +45,14 @@ export default async function BasesPage() {
                     <CardTitle>{base.name}</CardTitle>
                     <p className="text-sm text-foreground/50">Lote de referência: {base.batchSize}ml</p>
                   </div>
-                  <DeleteButton action={deleteBase} id={base.id} label={`Remover ${base.name}?`} />
+                  <div className="flex items-center gap-1">
+                    <Link href={`/bases/${base.id}/editar`}>
+                      <Button variant="ghost" size="icon" aria-label={`Editar ${base.name}`}>
+                        <Pencil className="size-4 text-foreground/70 transition hover:text-accent" />
+                      </Button>
+                    </Link>
+                    <DeleteButton action={deleteBase} id={base.id} label={`Remover ${base.name}?`} />
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-4 gap-3 text-center text-xs">

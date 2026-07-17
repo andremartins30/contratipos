@@ -7,6 +7,7 @@ import { calculateUnitCost } from "@/lib/calculations/ingredientCost";
 import { calculatePerfumeCost } from "@/lib/calculations/perfumeCost";
 import { CompositionBar } from "@/components/perfumes/composition-bar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { FAMILY_LABELS, CONCENTRATION_LABELS } from "@/lib/schemas/perfume";
 import { formatBRL, formatPercent, formatMl } from "@/lib/format";
 
@@ -45,9 +46,16 @@ export default async function PerfumeDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <Link href="/perfumes" className="inline-flex items-center gap-1.5 text-sm text-foreground/55 hover:text-foreground">
-        <ArrowLeft className="size-3.5" /> Voltar ao catálogo
-      </Link>
+      <div className="flex items-center justify-between">
+        <Link href="/perfumes" className="inline-flex items-center gap-1.5 text-sm text-foreground/55 hover:text-foreground">
+          <ArrowLeft className="size-3.5" /> Voltar ao catálogo
+        </Link>
+        <Link href={`/perfumes/${perfume.id}/editar`}>
+          <Button variant="outline" size="sm">
+            Editar perfume
+          </Button>
+        </Link>
+      </div>
 
       <div>
         <p className="text-xs uppercase tracking-[0.18em] text-foreground/45">

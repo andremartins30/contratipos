@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { createProject } from "@/app/projetos/actions";
+import { createProject, updateProject } from "@/app/projetos/actions";
 import { calculatePerfumeCost } from "@/lib/calculations/perfumeCost";
 import { calculateBaseCost } from "@/lib/calculations/baseCost";
 import { CompositionBar } from "@/components/perfumes/composition-bar";
@@ -66,19 +66,51 @@ interface OverrideState {
   manualUnitCost: number;
 }
 
+export interface ProjectInitialData {
+  id: string;
+  name: string;
+  essencePercentage: number;
+  essenceIngredientId: string;
+  hedionePercentage: number;
+  hedioneIngredientId?: string | null;
+  baseId: string;
+  bottleId?: string | null;
+  marginTarget: number;
+  notes?: string | null;
+  materialCosts: {
+    ingredientId: string;
+    useSystemPrice: boolean;
+    manualUnitCost?: number | null;
+  }[];
+}
+
 export function ProjectForm({
   bases,
   bottles,
   ingredients,
+  initialData,
 }: {
   bases: BaseOption[];
   bottles: BottleOption[];
   ingredients: IngredientOption[];
+  initialData?: ProjectInitialData;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [overrides, setOverrides] = useState<Record<string, OverrideState>>({});
+  const [overrides, setOverrides] = useState<Record<string, OverrideState>>(() => {
+    if (initialData?.materialCosts) {
+      const initialOverrides: Record<string, OverrideState> = {};
+      for (const cost of initialData.materialCosts) {
+        initialOverrides[cost.ingredientId] = {
+          useSystemPrice: cost.useSystemPrice,
+          manualUnitCost: cost.manualUnitCost ?? 0,
+        };
+      }
+      return initialOverrides;
+    }
+    return {};
+  });
 
   const defaultEssence = ingredients.find((i) => i.category === "ESSENCIA") ?? ingredients[0];
 
@@ -90,12 +122,15 @@ export function ProjectForm({
   } = useForm<ClientFormInput, unknown, ClientFormValues>({
     resolver: zodResolver(clientSchema),
     defaultValues: {
-      essencePercentage: 20,
-      hedionePercentage: 0,
-      baseId: bases[0]?.id ?? "",
-      bottleId: bottles[0]?.id ?? "",
-      essenceIngredientId: defaultEssence?.id ?? "",
-      marginTarget: 65,
+      name: initialData?.name ?? "",
+      essencePercentage: initialData ? initialData.essencePercentage * 100 : 20,
+      essenceIngredientId: initialData?.essenceIngredientId ?? defaultEssence?.id ?? "",
+      hedionePercentage: initialData ? initialData.hedionePercentage * 100 : 0,
+      hedioneIngredientId: initialData?.hedioneIngredientId ?? "",
+      baseId: initialData?.baseId ?? bases[0]?.id ?? "",
+      bottleId: initialData?.bottleId ?? bottles[0]?.id ?? "",
+      marginTarget: initialData ? initialData.marginTarget * 100 : 65,
+      notes: initialData?.notes ?? "",
     },
   });
 
@@ -204,19 +239,35 @@ export function ProjectForm({
 
     startTransition(async () => {
       try {
-        const { id } = await createProject({
-          name: form.name,
-          essencePercentage: form.essencePercentage / 100,
-          essenceIngredientId: form.essenceIngredientId,
-          hedionePercentage: form.hedionePercentage / 100,
-          hedioneIngredientId: form.hedioneIngredientId || undefined,
-          baseId: form.baseId,
-          bottleId: form.bottleId,
-          marginTarget: form.marginTarget / 100,
-          notes: form.notes || undefined,
-          materials,
-        });
-        router.push(`/projetos/${id}`);
+        if (initialData) {
+          await updateProject(initialData.id, {
+            name: form.name,
+            essencePercentage: form.essencePercentage / 100,
+            essenceIngredientId: form.essenceIngredientId,
+            hedionePercentage: form.hedionePercentage / 100,
+            hedioneIngredientId: form.hedioneIngredientId || undefined,
+            baseId: form.baseId,
+            bottleId: form.bottleId,
+            marginTarget: form.marginTarget / 100,
+            notes: form.notes || undefined,
+            materials,
+          });
+          router.push(`/projetos/${initialData.id}`);
+        } else {
+          const { id } = await createProject({
+            name: form.name,
+            essencePercentage: form.essencePercentage / 100,
+            essenceIngredientId: form.essenceIngredientId,
+            hedionePercentage: form.hedionePercentage / 100,
+            hedioneIngredientId: form.hedioneIngredientId || undefined,
+            baseId: form.baseId,
+            bottleId: form.bottleId,
+            marginTarget: form.marginTarget / 100,
+            notes: form.notes || undefined,
+            materials,
+          });
+          router.push(`/projetos/${id}`);
+        }
       } catch (err) {
         setSubmitError(err instanceof Error ? err.message : "Não foi possível salvar o projeto.");
       }

@@ -51,3 +51,50 @@ export async function createPerfume(formData: FormData) {
   revalidatePath("/perfumes");
   redirect("/perfumes");
 }
+
+export async function updatePerfume(id: string, formData: FormData) {
+  const raw = Object.fromEntries(formData.entries());
+
+  const toFraction = (value: FormDataEntryValue | undefined) =>
+    value === undefined || value === "" ? value : String(Number(value) / 100);
+
+  const normalized = {
+    ...raw,
+    essencePercentage: toFraction(raw.essencePercentage),
+    hedionePercentage: toFraction(raw.hedionePercentage),
+    marginTarget: toFraction(raw.marginTarget),
+  };
+
+  const parsed = perfumeFormSchema.safeParse(normalized);
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues.map((i) => i.message).join(", "));
+  }
+
+  const data = parsed.data;
+
+  await prisma.perfume.update({
+    where: { id },
+    data: {
+      name: data.name,
+      inspiredBrand: data.inspiredBrand || null,
+      family: data.family,
+      concentration: data.concentration,
+      description: data.description || null,
+      essencePercentage: data.essencePercentage,
+      essenceIngredientId: formData.get("essenceIngredientId") as string,
+      hedionePercentage: data.hedionePercentage,
+      hedioneIngredientId: (formData.get("hedioneIngredientId") as string) || null,
+      baseId: data.baseId,
+      bottleId: data.bottleId,
+      quantityProduced: data.quantityProduced,
+      marginTarget: data.marginTarget,
+      status: data.status,
+      notes: data.notes || null,
+    },
+  });
+
+  revalidatePath("/perfumes");
+  revalidatePath(`/perfumes/${id}`);
+  redirect(`/perfumes/${id}`);
+}

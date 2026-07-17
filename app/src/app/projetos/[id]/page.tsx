@@ -6,6 +6,7 @@ import { CompositionBar } from "@/components/perfumes/composition-bar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PrintButton } from "@/components/projects/print-button";
 import { PromoteButton } from "@/components/projects/promote-button";
+import { Button } from "@/components/ui/button";
 import { formatBRL, formatPercent, formatMl } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +29,13 @@ export default async function ProjectReportPage({ params }: { params: Promise<{ 
         </Link>
         <div className="flex items-center gap-2">
           <PrintButton />
+          {project.status !== "PROMOVIDO" && (
+            <Link href={`/projetos/${project.id}/editar`}>
+              <Button variant="outline" size="sm">
+                Editar projeto
+              </Button>
+            </Link>
+          )}
           {project.status !== "PROMOVIDO" ? (
             <PromoteButton projectId={project.id} />
           ) : (

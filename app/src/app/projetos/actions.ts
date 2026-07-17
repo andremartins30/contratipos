@@ -33,6 +33,39 @@ export async function createProject(payload: ProjectFormPayload) {
   return { id: project.id };
 }
 
+export async function updateProject(id: string, payload: ProjectFormPayload) {
+  const data = projectFormSchema.parse(payload);
+
+  await prisma.$transaction([
+    prisma.projectMaterialCost.deleteMany({ where: { projectId: id } }),
+    prisma.project.update({
+      where: { id },
+      data: {
+        name: data.name,
+        essencePercentage: data.essencePercentage,
+        essenceIngredientId: data.essenceIngredientId,
+        hedionePercentage: data.hedionePercentage,
+        hedioneIngredientId: data.hedioneIngredientId || null,
+        baseId: data.baseId,
+        bottleId: data.bottleId,
+        marginTarget: data.marginTarget,
+        notes: data.notes || null,
+        materialCosts: {
+          create: data.materials.map((m) => ({
+            ingredientId: m.ingredientId,
+            useSystemPrice: m.useSystemPrice,
+            manualUnitCost: m.useSystemPrice ? null : m.manualUnitCost ?? null,
+          })),
+        },
+      },
+    }),
+  ]);
+
+  revalidatePath("/projetos");
+  revalidatePath(`/projetos/${id}`);
+  return { id };
+}
+
 export async function promoteProjectToPerfume(payload: PromoteProjectPayload) {
   const data = promoteProjectSchema.parse(payload);
 

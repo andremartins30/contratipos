@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
-import { createBase } from "@/app/bases/actions";
+import { createBase, updateBase } from "@/app/bases/actions";
 import { calculateBaseCost, calculateBaseCostForVolumes } from "@/lib/calculations/baseCost";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,16 +25,35 @@ interface Row {
   percentage: number; // pontos percentuais, 0-100
 }
 
-export function BaseForm({ ingredients }: { ingredients: IngredientOption[] }) {
+export function BaseForm({
+  ingredients,
+  initialData,
+}: {
+  ingredients: IngredientOption[];
+  initialData?: {
+    id: string;
+    name: string;
+    batchSize: number;
+    notes?: string | null;
+    items: { ingredientId: string; percentage: number }[];
+  };
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [name, setName] = useState("");
-  const [batchSize, setBatchSize] = useState(1000);
-  const [notes, setNotes] = useState("");
-  const [rows, setRows] = useState<Row[]>([
-    { key: crypto.randomUUID(), ingredientId: ingredients[0]?.id ?? "", percentage: 100 },
-  ]);
+  const [name, setName] = useState(initialData?.name ?? "");
+  const [batchSize, setBatchSize] = useState(initialData?.batchSize ?? 1000);
+  const [notes, setNotes] = useState(initialData?.notes ?? "");
+  const [rows, setRows] = useState<Row[]>(() => {
+    if (initialData?.items && initialData.items.length > 0) {
+      return initialData.items.map((item) => ({
+        key: crypto.randomUUID(),
+        ingredientId: item.ingredientId,
+        percentage: item.percentage * 100,
+      }));
+    }
+    return [{ key: crypto.randomUUID(), ingredientId: ingredients[0]?.id ?? "", percentage: 100 }];
+  });
 
   const ingredientById = useMemo(() => new Map(ingredients.map((i) => [i.id, i])), [ingredients]);
 
@@ -79,14 +98,22 @@ export function BaseForm({ ingredients }: { ingredients: IngredientOption[] }) {
 
     startTransition(async () => {
       try {
-        const { id } = await createBase({
-          name,
-          batchSize,
-          notes: notes || undefined,
-          items: rows.map((r) => ({ ingredientId: r.ingredientId, percentage: (Number(r.percentage) || 0) / 100 })),
-        });
+        if (initialData) {
+          await updateBase(initialData.id, {
+            name,
+            batchSize,
+            notes: notes || undefined,
+            items: rows.map((r) => ({ ingredientId: r.ingredientId, percentage: (Number(r.percentage) || 0) / 100 })),
+          });
+        } else {
+          await createBase({
+            name,
+            batchSize,
+            notes: notes || undefined,
+            items: rows.map((r) => ({ ingredientId: r.ingredientId, percentage: (Number(r.percentage) || 0) / 100 })),
+          });
+        }
         router.push("/bases");
-        void id;
       } catch (err) {
         setError(err instanceof Error ? err.message : "Não foi possível salvar a base.");
       }

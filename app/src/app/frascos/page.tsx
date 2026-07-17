@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Wine } from "lucide-react";
+import { Plus, Wine, Pencil } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { formatBRL } from "@/lib/format";
@@ -44,7 +44,14 @@ export default async function BottlesPage() {
                   <p className="font-display text-2xl">{b.volumeMl}ml</p>
                   <p className="text-sm text-foreground/55">{b.model ?? "Modelo padrão"}</p>
                 </div>
-                <DeleteButton action={deleteBottle} id={b.id} label={`Remover frasco ${b.volumeMl}ml?`} />
+                <div className="flex items-center gap-1">
+                  <Link href={`/frascos/${b.id}/editar`}>
+                    <Button variant="ghost" size="icon" aria-label={`Editar frasco ${b.volumeMl}ml`}>
+                      <Pencil className="size-4 text-foreground/70 transition hover:text-accent" />
+                    </Button>
+                  </Link>
+                  <DeleteButton action={deleteBottle} id={b.id} label={`Remover frasco ${b.volumeMl}ml?`} />
+                </div>
               </div>
               <dl className="mt-4 space-y-1 text-sm">
                 <div className="flex justify-between">

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Truck } from "lucide-react";
+import { Plus, Truck, Pencil } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { DeleteButton } from "@/components/shared/delete-button";
@@ -57,7 +57,12 @@ export default async function SuppliersPage() {
                   <td className="p-3 font-mono tabular text-foreground/70">
                     {s._count.ingredients + s._count.bottles}
                   </td>
-                  <td className="p-3 text-right">
+                  <td className="p-3 text-right flex items-center justify-end gap-1">
+                    <Link href={`/fornecedores/${s.id}/editar`}>
+                      <Button variant="ghost" size="icon" aria-label={`Editar ${s.name}`}>
+                        <Pencil className="size-4 text-foreground/70 transition hover:text-accent" />
+                      </Button>
+                    </Link>
                     <DeleteButton action={deleteSupplier} id={s.id} label={`Remover ${s.name}?`} />
                   </td>
                 </tr>

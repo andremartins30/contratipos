@@ -26,3 +26,24 @@ export async function deleteBase(id: string) {
   await prisma.base.update({ where: { id }, data: { deletedAt: new Date() } });
   revalidatePath("/bases");
 }
+
+export async function updateBase(id: string, payload: BaseFormPayload) {
+  const data = baseFormSchema.parse(payload);
+
+  await prisma.$transaction([
+    prisma.baseIngredient.deleteMany({ where: { baseId: id } }),
+    prisma.base.update({
+      where: { id },
+      data: {
+        name: data.name,
+        batchSize: data.batchSize,
+        notes: data.notes || null,
+        items: {
+          create: data.items.map((item) => ({ ingredientId: item.ingredientId, percentage: item.percentage })),
+        },
+      },
+    }),
+  ]);
+
+  revalidatePath("/bases");
+}

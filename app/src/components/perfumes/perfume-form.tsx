@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { createPerfume } from "@/app/perfumes/actions";
+import { createPerfume, updatePerfume } from "@/app/perfumes/actions";
 import { calculatePerfumeCost } from "@/lib/calculations/perfumeCost";
 import { CompositionBar } from "@/components/perfumes/composition-bar";
 import { FAMILY_LABELS, CONCENTRATION_LABELS } from "@/lib/schemas/perfume";
@@ -50,19 +50,41 @@ const clientSchema = z.object({
   quantityProduced: z.coerce.number().int().min(1),
   marginTarget: z.coerce.number().min(0).max(95),
   notes: z.string().optional(),
+  status: z.string().default("ATIVO"),
 });
 
 type ClientFormInput = z.input<typeof clientSchema>;
 type ClientFormValues = z.output<typeof clientSchema>;
 
+export interface PerfumeInitialData {
+  id: string;
+  name: string;
+  inspiredBrand?: string | null;
+  family: string;
+  concentration: string;
+  description?: string | null;
+  essencePercentage: number;
+  essenceIngredientId: string;
+  hedionePercentage: number;
+  hedioneIngredientId?: string | null;
+  baseId: string;
+  bottleId: string;
+  quantityProduced: number;
+  marginTarget: number;
+  status: string;
+  notes?: string | null;
+}
+
 export function PerfumeForm({
   bases,
   bottles,
   ingredients,
+  initialData,
 }: {
   bases: BaseOption[];
   bottles: BottleOption[];
   ingredients: Option[];
+  initialData?: PerfumeInitialData;
 }) {
   const defaultEssence = ingredients.find((i) => i.category === "ESSENCIA") ?? ingredients[0];
 
@@ -73,19 +95,26 @@ export function PerfumeForm({
   } = useForm<ClientFormInput, unknown, ClientFormValues>({
     resolver: zodResolver(clientSchema),
     defaultValues: {
-      family: "CITRICO",
-      concentration: "EDP",
-      essencePercentage: 20,
-      hedionePercentage: 0,
-      baseId: bases[0]?.id ?? "",
-      bottleId: bottles[0]?.id ?? "",
-      essenceIngredientId: defaultEssence?.id ?? "",
-      quantityProduced: 1,
-      marginTarget: 65,
+      name: initialData?.name ?? "",
+      inspiredBrand: initialData?.inspiredBrand ?? "",
+      family: initialData?.family ?? "CITRICO",
+      concentration: initialData?.concentration ?? "EDP",
+      description: initialData?.description ?? "",
+      essencePercentage: initialData ? initialData.essencePercentage * 100 : 20,
+      essenceIngredientId: initialData?.essenceIngredientId ?? defaultEssence?.id ?? "",
+      hedionePercentage: initialData ? initialData.hedionePercentage * 100 : 0,
+      hedioneIngredientId: initialData?.hedioneIngredientId ?? "",
+      baseId: initialData?.baseId ?? bases[0]?.id ?? "",
+      bottleId: initialData?.bottleId ?? bottles[0]?.id ?? "",
+      quantityProduced: initialData?.quantityProduced ?? 1,
+      marginTarget: initialData ? initialData.marginTarget * 100 : 65,
+      notes: initialData?.notes ?? "",
+      status: initialData?.status ?? "ATIVO",
     },
   });
 
   const values = watch();
+  const actionToUse = initialData ? updatePerfume.bind(null, initialData.id) : createPerfume;
 
   const cost = useMemo(() => {
     const base = bases.find((b) => b.id === values.baseId);
@@ -108,7 +137,7 @@ export function PerfumeForm({
   }, [values, bases, bottles, ingredients]);
 
   return (
-    <form action={createPerfume} className="grid grid-cols-1 gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+    <form action={actionToUse} className="grid grid-cols-1 gap-6 lg:grid-cols-[1.1fr_0.9fr]">
       <div className="space-y-5">
         <Card>
           <CardHeader>
@@ -232,6 +261,15 @@ export function PerfumeForm({
               <Label htmlFor="marginTarget">Margem desejada (%)</Label>
               <Input id="marginTarget" type="number" step="0.1" {...register("marginTarget")} />
             </div>
+            {initialData && (
+              <div className="col-span-2 space-y-1.5">
+                <Label htmlFor="status">Status</Label>
+                <Select id="status" {...register("status")}>
+                  <option value="ATIVO">Ativo</option>
+                  <option value="INATIVO">Inativo</option>
+                </Select>
+              </div>
+            )}
             <div className="col-span-2 space-y-1.5">
               <Label htmlFor="notes">Observações</Label>
               <Input id="notes" {...register("notes")} placeholder="Opcional" />
