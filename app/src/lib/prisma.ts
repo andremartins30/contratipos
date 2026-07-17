@@ -4,9 +4,9 @@ import { PrismaClient } from "@prisma/client";
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 function createPrismaClient() {
-  // Dev local em arquivo SQLite. Para produção com Supabase, troque para
-  // @prisma/adapter-pg apontando para process.env.DATABASE_URL (Postgres).
-  const adapter = new PrismaLibSql({ url: "file:./prisma/dev.db" });
+  const url = process.env.DATABASE_URL || "file:./prisma/dev.db";
+  const authToken = process.env.DATABASE_AUTH_TOKEN;
+  const adapter = new PrismaLibSql({ url, authToken });
   return new PrismaClient({ adapter });
 }
 
